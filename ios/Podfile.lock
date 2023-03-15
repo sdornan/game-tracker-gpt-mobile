@@ -1,6 +1,9 @@
 PODS:
+  - ASN1Decoder (1.8.0)
   - boost (1.76.0)
   - DoubleConversion (1.1.6)
+  - EASClient (0.5.1):
+    - ExpoModulesCore
   - EXApplication (5.1.1):
     - ExpoModulesCore
   - EXConstants (14.2.1):
@@ -12,7 +15,7 @@ PODS:
   - EXJSONUtils (0.5.1)
   - EXManifests (0.5.2):
     - EXJSONUtils
-  - Expo (48.0.6):
+  - Expo (48.0.7):
     - ExpoModulesCore
   - expo-dev-client (2.1.5):
     - EXManifests
@@ -90,7 +93,7 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (12.0.1):
     - ExpoModulesCore
-  - ExpoModulesCore (1.2.4):
+  - ExpoModulesCore (1.2.5):
     - React-Core
     - React-RCTAppDelegate
     - ReactCommon/turbomodule/core
@@ -102,6 +105,15 @@ PODS:
     - ExpoModulesCore
   - EXSplashScreen (0.18.1):
     - ExpoModulesCore
+    - React-Core
+  - EXStructuredHeaders (3.1.1)
+  - EXUpdates (0.16.3):
+    - ASN1Decoder (~> 1.8)
+    - EASClient
+    - EXManifests
+    - ExpoModulesCore
+    - EXStructuredHeaders
+    - EXUpdatesInterface
     - React-Core
   - EXUpdatesInterface (0.9.1)
   - FBLazyVector (0.71.3)
@@ -467,6 +479,7 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - EASClient (from `../node_modules/expo-eas-client/ios`)
   - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXFileSystem (from `../node_modules/expo-file-system/ios`)
@@ -485,6 +498,8 @@ DEPENDENCIES:
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - EXSecureStore (from `../node_modules/expo-secure-store/ios`)
   - EXSplashScreen (from `../node_modules/expo-splash-screen/ios`)
+  - EXStructuredHeaders (from `../node_modules/expo-structured-headers/ios`)
+  - EXUpdates (from `../node_modules/expo-updates/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
@@ -525,6 +540,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - ASN1Decoder
     - fmt
     - libevent
 
@@ -533,6 +549,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  EASClient:
+    :path: "../node_modules/expo-eas-client/ios"
   EXApplication:
     :path: "../node_modules/expo-application/ios"
   EXConstants:
@@ -569,6 +587,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-secure-store/ios"
   EXSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
+  EXStructuredHeaders:
+    :path: "../node_modules/expo-structured-headers/ios"
+  EXUpdates:
+    :path: "../node_modules/expo-updates/ios"
   EXUpdatesInterface:
     :path: "../node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -641,26 +663,30 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  ASN1Decoder: 6110fdeacfdb41559b1481457a1645be716610aa
   boost: 57d2868c099736d80fcd648bf211b4431e51a558
   DoubleConversion: 5189b271737e1565bdce30deb4a08d647e3f5f54
+  EASClient: 950674e1098ebc09c4c2cf064a61e42e84d9d4c6
   EXApplication: d8f53a7eee90a870a75656280e8d4b85726ea903
   EXConstants: f348da07e21b23d2b085e270d7b74f282df1a7d9
   EXFileSystem: 844e86ca9b5375486ecc4ef06d3838d5597d895d
   EXFont: 6ea3800df746be7233208d80fe379b8ed74f4272
   EXJSONUtils: 48b1e764ac35160e6f54d21ab60d7d9501f3e473
   EXManifests: 500666d48e8dd7ca5a482c9e729e4a7a6c34081b
-  Expo: 04ba1ddde0be07aff4306ae636a1804810679145
+  Expo: 707f9b0039eacc6a1dce90c08c9e37b9c417bba2
   expo-dev-client: 7c1ef51516853465f4d448c14ddf365167d20361
   expo-dev-launcher: 90de99d9e5d1a883d81355ca10e87c2f3c81d46e
   expo-dev-menu: d4369e74d8d21a0ccdee35f7c732e7118b0fee16
   expo-dev-menu-interface: 6c82ae323c4b8724dead4763ce3ff24a2108bdb1
   ExpoCrypto: 477dfe89c81527b376f2c344ca1d2a01244b243c
   ExpoKeepAwake: 69f5f627670d62318410392d03e0b5db0f85759a
-  ExpoModulesCore: 1667335d4f4c9b7801990930e6f0eea42c916a21
+  ExpoModulesCore: 397fc99e9d6c9dcc010f36d5802097c17b90424c
   ExpoRandom: 7ee07d62e7003b74d0536e0495e3a653fe1b2a74
   ExpoWebBrowser: 033d34c478d9986da2f1679729041423837626e0
   EXSecureStore: e8923258361cc406d0401af380f12bd05b2b720f
   EXSplashScreen: cd7fb052dff5ba8311d5c2455ecbebffe1b7a8ca
+  EXStructuredHeaders: b1a48d732562e2cc81f11771bcfd29534f5d9254
+  EXUpdates: 46d6cf222e92e5b22ac06a9b03f1ffba9b6886fc
   EXUpdatesInterface: dd699d1930e28639dcbd70a402caea98e86364ca
   FBLazyVector: 60195509584153283780abdac5569feffb8f08cc
   FBReactNativeSpec: 9c191fb58d06dc05ab5559a5505fc32139e9e4a2

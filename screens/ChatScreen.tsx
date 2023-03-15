@@ -1,22 +1,42 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { GiftedChat, IMessage, User } from 'react-native-gifted-chat'
 import uuid from 'react-native-uuid'
 import { useAuth } from '../components/AuthContext'
 import { Game, useCollection } from '../components/CollectionContext'
 import { searchForGame, sendChatMessage } from '../lib/api'
-import { getGameImageUrl } from '../lib/utils'
+import { capitalize, getGameImageUrl } from '../lib/utils'
 
-const SYSTEM_USER: User = {
+type Action = 'add_and_rate' | 'add' | 'remove' | 'rate'
+
+type ActionMap = {
+  [k in Action]: string
+}
+
+const pastTenseActions: ActionMap = {
+  add_and_rate: 'added and rated',
+  add: 'added',
+  remove: 'removed',
+  rate: 'rated',
+}
+
+const human: User = {
+  _id: 1,
+  name: 'Developer',
+}
+
+const bot: User = {
   _id: 2,
   name: 'React Native',
-  avatar: 'https://placeimg.com/140/140/any',
+  avatar: require('./../assets/bot-avatar.png'),
 }
 
 const ChatScreen = () => {
   const { user, logOut } = useAuth()
-  const { mutation } = useCollection()
+  const { games, mutation } = useCollection()
   const [messages, setMessages] = useState<IMessage[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const [currentGame, setCurrentGame] = useState<Game>(null)
 
   useEffect(() => {
     setMessages([
@@ -24,13 +44,31 @@ const ChatScreen = () => {
         _id: 1,
         text: `Hello, ${user.given_name}!`,
         createdAt: new Date(),
-        user: SYSTEM_USER,
+        user: bot,
       },
     ])
   }, [])
 
-  const onSend = useCallback(async (messages = []) => {
+  const onQuickReply = (replies = []) => {
+    const replyMessages = replies.map((reply) => ({
+      _id: uuid.v4() as string,
+      text: reply.title,
+      user: human,
+      createdAt: new Date(),
+    }))
+
+    setMessages((previousMessages) => GiftedChat.append(previousMessages, replyMessages))
+
+    if (replies[0].value === 'yes') {
+      mutation.mutate(currentGame)
+      onCollectionAction('add_and_rate', currentGame)
+    }
+  }
+
+  const onSend = async (messages = []) => {
     setMessages((previousMessages) => GiftedChat.append(previousMessages, messages))
+
+    setIsTyping(true)
 
     const lastMessage = messages[0]
 
@@ -51,40 +89,94 @@ const ChatScreen = () => {
 
     const searchResponse = await searchForGame(chatResponse.game)
 
-    const matchedGame: Game = searchResponse[0]
+    const matchedGame: Game = { ...searchResponse[0], rating: chatResponse.rating }
 
-    matchedGame.rating = chatResponse.rating
+    setCurrentGame(matchedGame)
 
-    const actions = Array.isArray(chatResponse.action) ? chatResponse.action : [chatResponse.action]
-
-    for (const action of actions) {
-      if (action === 'add') {
+    switch (chatResponse.action) {
+      case 'add':
+      case 'add_and_rate':
         mutation.mutate(matchedGame)
-      }
+        break
+      case 'remove':
+        break
+      case 'rate':
+        const game = games.find((g) => g.id === matchedGame.id)
+        if (game) {
+          // Game already in collection
+          mutation.mutate(matchedGame)
+        } else {
+          // Game not in collection
+          onRateWithNewGame(matchedGame)
+          return
+        }
+    }
 
-      //   if (action === 'remove') {
-      //     dispatch({ type: 'REMOVE_GAME', payload: game })
-      //   }
-      //   if (action === 'rate') {
-      //     dispatch({ type: 'RATE_GAME', payload: game })
-      //   }
+    onCollectionAction(chatResponse.action, matchedGame)
+  }
+
+  const onRateWithNewGame = (newGame: Game) => {
+    setMessages((previousMessages) =>
+      GiftedChat.append(previousMessages, [
+        {
+          _id: uuid.v4() as string,
+          text: `${newGame.name} is not in your collection. Would you like to add it first?`,
+          user: bot,
+          createdAt: new Date(),
+          quickReplies: {
+            type: 'radio',
+            keepIt: false,
+            values: [
+              {
+                title: 'Yes',
+                value: 'yes',
+              },
+              {
+                title: 'No',
+                value: 'no',
+              },
+            ],
+          },
+        },
+      ])
+    )
+
+    setIsTyping(false)
+  }
+
+  const onCollectionAction = (action: Action, game: Game) => {
+    setIsTyping(false)
+
+    let text = `${capitalize(pastTenseActions[action])} ${game.name}`
+
+    if (game.rating) {
+      text += ` with a rating of ${game.rating}`
     }
 
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, [
         {
-          _id: uuid.v4(),
-          image: getGameImageUrl(matchedGame.cover.image_id),
-          text: `${actions.join(', ')} ${matchedGame.name}`,
-          user: SYSTEM_USER,
+          _id: uuid.v4() as string,
+          image: getGameImageUrl(game?.cover?.image_id) || null,
+          text,
+          user: bot,
+          createdAt: new Date(),
         },
       ])
     )
-  }, [])
+
+    setCurrentGame(null)
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <GiftedChat messages={messages} onSend={(messages) => onSend(messages)} user={{ _id: 1 }} />
+      <GiftedChat
+        messages={messages}
+        onSend={onSend}
+        onQuickReply={onQuickReply}
+        user={human}
+        isTyping={isTyping}
+      />
     </View>
   )
 }

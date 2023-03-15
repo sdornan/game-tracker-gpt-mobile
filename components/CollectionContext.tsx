@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from 'react'
+import { createContext, ReactNode, useContext, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { addGameToCollection, fetchGameCollection, fetchGames } from '../lib/api'
 import { useAuth } from './AuthContext'
@@ -19,7 +19,10 @@ export type Game = {
   rating?: number
 }
 
-const CollectionContext = createContext(null)
+const CollectionContext = createContext({
+  games: [],
+  mutation: null,
+})
 
 export const CollectionProvider = ({ children }: { children: ReactNode }) => {
   const collection = useProvideCollection()
@@ -44,21 +47,19 @@ const useProvideCollection = () => {
     },
   })
 
-  const gameIds = collectionData?.map((g) => g.gameId) ?? []
+  const gameIds = useMemo(() => collectionData?.map((g) => g.gameId) ?? [], [collectionData])
 
-  const { data: games } = useQuery<Game[]>(
-    ['games', gameIds.join(',')],
-    () => {
-      return fetchGames(gameIds)
-    },
-    {
-      onSuccess: (data) => {
-        data = data.map((g) => ({
-          ...g,
-          rating: collectionData.find((c) => c.gameId === g.id)?.rating,
-        }))
-      },
-    }
+  const { data: gamesData } = useQuery<Game[]>(['games', gameIds.join(',')], () => {
+    return fetchGames(gameIds)
+  })
+
+  const games = useMemo(
+    () =>
+      gamesData?.map((game) => ({
+        ...game,
+        rating: collectionData.find((c) => c.gameId === game.id)?.rating ?? null,
+      })) ?? [],
+    [collectionData, gamesData]
   )
 
   const mutation = useMutation((newGame: Game) => addGameToCollection(newGame.id, newGame.rating), {

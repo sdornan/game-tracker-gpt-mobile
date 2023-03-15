@@ -11,18 +11,21 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.samdornan.gametrackergpt",
-      "config": {
-        "usesNonExemptEncryption": false
-      }
+      "runtimeVersion": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "runtimeVersion": {
+        "policy": "sdkVersion"
       }
     },
     "web": {
@@ -34,6 +37,9 @@
         "projectId": "66c0b26e-1b74-4e9d-8cd2-b1553254939c"
       }
     },
-    "owner": "sdornan"
+    "owner": "sdornan",
+    "updates": {
+      "url": "https://u.expo.dev/66c0b26e-1b74-4e9d-8cd2-b1553254939c"
+    }
   }
 }

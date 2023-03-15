@@ -16,7 +16,7 @@ const getRatingColor = (rating: number) => {
 
 const Item = ({ game }: { game: Game }) => (
   <View style={styles.item}>
-    <Image source={{ uri: getGameImageUrl(game.cover.image_id) }} style={styles.image} />
+    <Image source={{ uri: getGameImageUrl(game?.cover?.image_id) || null }} style={styles.image} />
     {game.rating ? (
       <View style={[styles.ratingContainer, { backgroundColor: getRatingColor(game.rating) }]}>
         <Text style={styles.ratingNumber}>{game.rating}</Text>
