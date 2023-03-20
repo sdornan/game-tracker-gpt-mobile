@@ -1,27 +1,20 @@
 import { createContext, ReactNode, useContext, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
-import { addGameToCollection, fetchGameCollection, fetchGames } from '../lib/api'
+import { CollectionGame, Game } from '../interfaces'
+import {
+  addGameToCollection,
+  fetchGameCollection,
+  fetchGames,
+  removeGameFromCollection,
+  updateGameInCollection,
+} from '../lib/api'
 import { useAuth } from './AuthContext'
-
-type CollectionGame = {
-  gameId: number
-  rating: number
-}
-
-export type Game = {
-  id: number
-  name: string
-  slug: string
-  rating_count: number
-  cover: {
-    image_id: string
-  }
-  rating?: number
-}
 
 const CollectionContext = createContext({
   games: [],
-  mutation: null,
+  addMutation: null,
+  removeMutation: null,
+  updateMutation: null,
 })
 
 export const CollectionProvider = ({ children }: { children: ReactNode }) => {
@@ -58,15 +51,34 @@ const useProvideCollection = () => {
       gamesData?.map((game) => ({
         ...game,
         rating: collectionData.find((c) => c.gameId === game.id)?.rating ?? null,
+        status: collectionData.find((c) => c.gameId === game.id)?.status ?? null,
       })) ?? [],
     [collectionData, gamesData]
   )
 
-  const mutation = useMutation((newGame: Game) => addGameToCollection(newGame.id, newGame.rating), {
+  const addMutation = useMutation(
+    (game: Game) => addGameToCollection(game.id, game.rating, game.status),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('collection')
+      },
+    }
+  )
+
+  const removeMutation = useMutation((game: Game) => removeGameFromCollection(game.id), {
     onSuccess: () => {
       queryClient.invalidateQueries('collection')
     },
   })
 
-  return { games, mutation }
+  const updateMutation = useMutation(
+    (game: Game) => updateGameInCollection(game.id, game.rating, game.status),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('collection')
+      },
+    }
+  )
+
+  return { games, addMutation, removeMutation, updateMutation }
 }

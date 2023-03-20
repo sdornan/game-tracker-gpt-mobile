@@ -26,7 +26,8 @@
       },
       "runtimeVersion": {
         "policy": "sdkVersion"
-      }
+      },
+      "package": "com.samdornan.gametrackergpt"
     },
     "web": {
       "favicon": "./assets/favicon.png"

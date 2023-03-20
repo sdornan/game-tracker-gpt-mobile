@@ -37,6 +37,7 @@ const useProvideAuth = () => {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '988986080253-l04s45t5k5j6s9o52podjukrhv687c12.apps.googleusercontent.com',
+    androidClientId: '988986080253-aijealndmpdlham7j78ms75pm0mbb3bn.apps.googleusercontent.com',
   })
 
   const handleStartup = async () => {
@@ -58,8 +59,8 @@ const useProvideAuth = () => {
   }, [])
 
   const handleTokens = async (response: AuthSession.TokenResponse) => {
-    const { idToken, accessToken, refreshToken } = response
-    const loggedIn = await authenticateUser(idToken, accessToken)
+    const { idToken, accessToken, refreshToken, issuedAt, expiresIn } = response
+    const loggedIn = await authenticateUser(idToken, accessToken, issuedAt, expiresIn)
     const stored = await storeTokens({ idToken, accessToken, refreshToken })
     const user = await getUserInfo(accessToken)
 
@@ -74,9 +75,14 @@ const useProvideAuth = () => {
     }
   }, [response])
 
-  const authenticateUser = async (idToken: string, accessToken: string) => {
+  const authenticateUser = async (
+    idToken: string,
+    accessToken: string,
+    issuedAt: number,
+    expiresIn: number
+  ) => {
     try {
-      await authUser(idToken, accessToken)
+      await authUser(idToken, accessToken, issuedAt, expiresIn)
 
       return true
     } catch (error) {

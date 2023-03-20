@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChatScreen renders correctly 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#fff",
+      "flex": 1,
+    }
+  }
+>
+  <View
+    onLayout={[Function]}
+    style={
+      {
+        "flex": 1,
+      }
+    }
+    testID="GC_LOADING_CONTAINER"
+  />
+</View>
+`;

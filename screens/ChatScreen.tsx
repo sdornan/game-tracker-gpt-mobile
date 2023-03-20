@@ -3,21 +3,19 @@ import { View } from 'react-native'
 import { GiftedChat, IMessage, User } from 'react-native-gifted-chat'
 import uuid from 'react-native-uuid'
 import { useAuth } from '../components/AuthContext'
-import { Game, useCollection } from '../components/CollectionContext'
+import { useCollection } from '../components/CollectionContext'
+import { ChatGPTResponse, CollectionAction, Game } from '../interfaces'
 import { searchForGame, sendChatMessage } from '../lib/api'
 import { capitalize, getGameImageUrl } from '../lib/utils'
 
-type Action = 'add_and_rate' | 'add' | 'remove' | 'rate'
-
-type ActionMap = {
-  [k in Action]: string
+type CollectionActionMap = {
+  [k in CollectionAction]: string
 }
 
-const pastTenseActions: ActionMap = {
-  add_and_rate: 'added and rated',
+const pastTenseCollectionActions: CollectionActionMap = {
   add: 'added',
   remove: 'removed',
-  rate: 'rated',
+  update: 'updated',
 }
 
 const human: User = {
@@ -33,7 +31,7 @@ const bot: User = {
 
 const ChatScreen = () => {
   const { user, logOut } = useAuth()
-  const { games, mutation } = useCollection()
+  const { games, addMutation, removeMutation, updateMutation } = useCollection()
   const [messages, setMessages] = useState<IMessage[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [currentGame, setCurrentGame] = useState<Game>(null)
@@ -42,7 +40,7 @@ const ChatScreen = () => {
     setMessages([
       {
         _id: 1,
-        text: `Hello, ${user.given_name}!`,
+        text: user ? `Hello, ${user.given_name}!` : 'Hello!',
         createdAt: new Date(),
         user: bot,
       },
@@ -60,8 +58,8 @@ const ChatScreen = () => {
     setMessages((previousMessages) => GiftedChat.append(previousMessages, replyMessages))
 
     if (replies[0].value === 'yes') {
-      mutation.mutate(currentGame)
-      onCollectionAction('add_and_rate', currentGame)
+      addMutation.mutate(currentGame)
+      respondAfterCollectionAction('add', currentGame)
     }
   }
 
@@ -72,7 +70,7 @@ const ChatScreen = () => {
 
     const lastMessage = messages[0]
 
-    let chatResponse
+    let chatResponse: ChatGPTResponse
     try {
       chatResponse = await sendChatMessage(lastMessage.text)
     } catch (error) {
@@ -87,35 +85,67 @@ const ChatScreen = () => {
       return
     }
 
+    switch (chatResponse.category) {
+      case 'collection':
+        handleCollectionAction(chatResponse)
+      case 'query':
+        handleQuery(chatResponse)
+        break
+    }
+  }
+
+  const handleCollectionAction = async (chatResponse: ChatGPTResponse) => {
     const searchResponse = await searchForGame(chatResponse.game)
 
-    const matchedGame: Game = { ...searchResponse[0], rating: chatResponse.rating }
+    const matchedGame: Game = searchResponse?.[0]
+
+    if (!matchedGame) {
+      // No game found in search
+      return
+    }
+
+    if (chatResponse.rating) {
+      matchedGame.rating = chatResponse.rating
+    }
+
+    if (chatResponse.status) {
+      matchedGame.status = chatResponse.status
+    }
 
     setCurrentGame(matchedGame)
 
     switch (chatResponse.action) {
       case 'add':
-      case 'add_and_rate':
-        mutation.mutate(matchedGame)
+        addMutation.mutate(matchedGame)
         break
       case 'remove':
+        removeMutation.mutate(matchedGame)
         break
-      case 'rate':
+      case 'update':
         const game = games.find((g) => g.id === matchedGame.id)
         if (game) {
           // Game already in collection
-          mutation.mutate(matchedGame)
+          updateMutation.mutate(matchedGame)
         } else {
           // Game not in collection
-          onRateWithNewGame(matchedGame)
+          handleUpdateWithNewGame(matchedGame)
           return
         }
+        break
     }
 
-    onCollectionAction(chatResponse.action, matchedGame)
+    respondAfterCollectionAction(chatResponse.action, matchedGame)
   }
 
-  const onRateWithNewGame = (newGame: Game) => {
+  const handleQuery = async (chatResponse: ChatGPTResponse) => {
+    console.log(chatResponse)
+
+    // const searchResponse = await searchForGame(chatResponse.game, chatResponse.query)
+
+    // console.log(searchResponse)
+  }
+
+  const handleUpdateWithNewGame = (newGame: Game) => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, [
         {
@@ -144,13 +174,17 @@ const ChatScreen = () => {
     setIsTyping(false)
   }
 
-  const onCollectionAction = (action: Action, game: Game) => {
+  const respondAfterCollectionAction = (action: CollectionAction, game: Game) => {
     setIsTyping(false)
 
-    let text = `${capitalize(pastTenseActions[action])} ${game.name}`
+    let text = `${capitalize(pastTenseCollectionActions[action])} ${game.name}`
+
+    if (game.status) {
+      text += ` with a status of ${game.status}`
+    }
 
     if (game.rating) {
-      text += ` with a rating of ${game.rating}`
+      text += `${game.status ? ' and' : ''} with a rating of ${game.rating}/10`
     }
 
     setMessages((previousMessages) =>
