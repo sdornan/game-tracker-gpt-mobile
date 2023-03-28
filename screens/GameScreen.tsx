@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   ActivityIndicator,
   Dimensions,
@@ -8,7 +9,9 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useQuery } from 'react-query'
+import { useCollection } from '../components/CollectionContext'
+import Rating from '../components/Rating'
+import StatusIcon from '../components/StatusIcon'
 import { fetchGameDetails } from '../lib/api'
 import { getGameImageUrl } from '../lib/utils'
 
@@ -19,6 +22,10 @@ const CollectionScreen = ({ route }) => {
     return fetchGameDetails(gameId)
   })
 
+  const { games: collectionData } = useCollection()
+
+  const collectionGame = collectionData.find((g) => g.id === gameId)
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -27,7 +34,7 @@ const CollectionScreen = ({ route }) => {
     )
   }
 
-  const earliestReleaseDate = gameData.release_dates.sort((a, b) => a.date - b.date)?.[0]
+  const earliestReleaseDate = gameData?.release_dates.sort((a, b) => a.date - b.date)?.[0]
 
   const genres = gameData.genres.map((g) => g.name).join(', ')
 
@@ -57,6 +64,33 @@ const CollectionScreen = ({ route }) => {
         </View>
       </ImageBackground>
       <View style={styles.bodyContainer}>
+        {collectionGame.status || collectionGame.rating ? (
+          <View style={styles.ratingStatusRow}>
+            {collectionGame.status ? (
+              <View style={styles.statusContainer}>
+                <Text style={styles.label}>Status</Text>
+                <View style={styles.status}>
+                  <StatusIcon status={collectionGame?.status} size={32} />
+                  <Text style={styles.statusText}>{collectionGame.status}</Text>
+                </View>
+              </View>
+            ) : (
+              <></>
+            )}
+
+            {collectionGame.rating ? (
+              <View style={styles.ratingContainer}>
+                <Text style={styles.label}>Rating</Text>
+                <Rating rating={collectionGame?.rating} size={35} />
+              </View>
+            ) : (
+              <></>
+            )}
+          </View>
+        ) : (
+          <></>
+        )}
+
         <View>
           <Text style={styles.label}>Genres</Text>
           <Text>{genres}</Text>
@@ -132,6 +166,31 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
     fontSize: 15,
+  },
+  ratingStatusRow: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  statusContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    rowGap: 5,
+  },
+  ratingContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    rowGap: 5,
+  },
+  status: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 5,
+  },
+  statusText: {
+    fontSize: 18,
+    textTransform: 'capitalize',
+    fontWeight: '600',
   },
 })
 

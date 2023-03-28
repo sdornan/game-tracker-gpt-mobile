@@ -1,18 +1,14 @@
+import { randomUUID } from 'expo-crypto'
 import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { GiftedChat, IMessage, User } from 'react-native-gifted-chat'
-import uuid from 'react-native-uuid'
 import { useAuth } from '../components/AuthContext'
 import { useCollection } from '../components/CollectionContext'
 import { ChatGPTResponse, CollectionAction, Game } from '../interfaces'
 import { searchForGame, sendChatMessage } from '../lib/api'
 import { capitalize, getGameImageUrl } from '../lib/utils'
 
-type CollectionActionMap = {
-  [k in CollectionAction]: string
-}
-
-const pastTenseCollectionActions: CollectionActionMap = {
+const pastTenseCollectionActions: Record<CollectionAction, string> = {
   add: 'added',
   remove: 'removed',
   update: 'updated',
@@ -49,7 +45,7 @@ const ChatScreen = () => {
 
   const onQuickReply = (replies = []) => {
     const replyMessages = replies.map((reply) => ({
-      _id: uuid.v4() as string,
+      _id: randomUUID(),
       text: reply.title,
       user: human,
       createdAt: new Date(),
@@ -79,6 +75,8 @@ const ChatScreen = () => {
         return
       }
     }
+
+    console.log(chatResponse)
 
     if (!chatResponse.game) {
       // No game found in Chatbot response
@@ -149,7 +147,7 @@ const ChatScreen = () => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, [
         {
-          _id: uuid.v4() as string,
+          _id: randomUUID(),
           text: `${newGame.name} is not in your collection. Would you like to add it first?`,
           user: bot,
           createdAt: new Date(),
@@ -180,7 +178,7 @@ const ChatScreen = () => {
     let text = `${capitalize(pastTenseCollectionActions[action])} ${game.name}`
 
     if (game.status) {
-      text += ` with a status of ${game.status}`
+      text += ` with a status of ${capitalize(game.status)}`
     }
 
     if (game.rating) {
@@ -190,7 +188,7 @@ const ChatScreen = () => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, [
         {
-          _id: uuid.v4() as string,
+          _id: randomUUID(),
           image: getGameImageUrl(game?.cover?.image_id) || null,
           text,
           user: bot,

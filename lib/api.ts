@@ -1,5 +1,5 @@
 import Constants from 'expo-constants'
-import { ChatGPTResponse, CollectionGame, CollectionStatus, Query } from '../interfaces'
+import { CollectionGame, CollectionStatus, Game } from '../interfaces'
 import { getAccessToken } from './store'
 const { manifest } = Constants
 
@@ -13,83 +13,47 @@ const headers: RequestInit['headers'] = {
   'Content-Type': 'application/json',
 }
 
-export const sendChatMessage = async (message: string) => {
+const apiFetch = async (method: string, endpoint: string, body?: object) => {
   const accessToken = await getAccessToken()
 
-  const body = JSON.stringify({ message })
-
-  let response
-
-  try {
-    response = await fetch(`${apiUrl}/api/chat`, {
-      method: 'POST',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-  } catch (error) {
-    console.error(error)
+  const requestOptions: RequestInit = {
+    method,
+    headers: { ...headers, Authorization: `Bearer ${accessToken}` },
   }
 
-  if (response?.ok) {
-    return (await response.json()) as ChatGPTResponse
-  } else {
-    return Promise.reject(response)
+  if (body) {
+    requestOptions.body = JSON.stringify(body)
+  }
+
+  try {
+    const response = await fetch(`${apiUrl}${endpoint}`, requestOptions)
+    if (!response.ok) {
+      throw response
+    }
+    return await response.json()
+  } catch (error) {
+    console.error(error)
+    throw error
   }
 }
 
-export const searchForGame = async (name: string, query?: Query) => {
-  const accessToken = await getAccessToken()
+export const sendChatMessage = async (message: string) => {
+  return await apiFetch('POST', '/api/chat', { message })
+}
 
-  const body = JSON.stringify({ name, query })
-
-  try {
-    const response = await fetch(`${apiUrl}/api/games/search`, {
-      method: 'POST',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-    const json = await response.json()
-    return json as any[]
-  } catch (error) {
-    console.error(error)
-  }
+export const searchForGame = async (name: string) => {
+  return await apiFetch('POST', '/api/games/search', { name })
 }
 
 export const fetchGameDetails = async (id: number) => {
-  const accessToken = await getAccessToken()
-
-  try {
-    const response = await fetch(`${apiUrl}/api/games/${id}`, {
-      method: 'GET',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-    })
-    const json = await response.json()
-    return json as any
-  } catch (error) {
-    console.error(error)
-  }
+  return await apiFetch('GET', `/api/games/${id}`)
 }
 
 export const fetchGames = async (id: number[]) => {
   if (!id.length) {
     return Promise.resolve([])
   }
-
-  const accessToken = await getAccessToken()
-
-  const body = JSON.stringify({ id })
-
-  try {
-    const response = await fetch(`${apiUrl}/api/games`, {
-      method: 'POST',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-    const json = await response.json()
-    return json as any[]
-  } catch (error) {
-    console.error(error)
-  }
+  return await apiFetch('POST', '/api/games', { id })
 }
 
 export const authUser = async (
@@ -98,50 +62,16 @@ export const authUser = async (
   issuedAt: number,
   expiresIn: number
 ) => {
-  const body = JSON.stringify({
-    idToken,
-    accessToken,
-    issuedAt,
-    expiresIn,
-  })
-
-  try {
-    const response = await fetch(`${apiUrl}/api/auth`, {
-      method: 'POST',
-      headers,
-      body,
-    })
-    const json = await response.json()
-    return json as any
-  } catch (error) {
-    console.error(error)
-  }
+  return await apiFetch('POST', '/api/auth', { idToken, accessToken, issuedAt, expiresIn })
 }
 
-export const addGameToCollection = async (gameId: number, rating?: number, status?: string) => {
-  const accessToken = await getAccessToken()
-
-  const body = JSON.stringify({
-    gameId,
-    rating,
-    status,
-  })
-
-  try {
-    const response = await fetch(`${apiUrl}/api/collection`, {
-      method: 'POST',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-    const json = await response.json()
-    return json as any
-  } catch (error) {
-    console.error(error)
-  }
+export const addGameToCollection = async (game: Game) => {
+  const { id: gameId, rating, status } = game
+  return await apiFetch('POST', '/api/collection', { gameId, rating, status })
 }
 
-export const updateGameInCollection = async (gameId: number, rating?: number, status?: string) => {
-  const accessToken = await getAccessToken()
+export const updateGameInCollection = async (game: Game) => {
+  const { id: gameId, rating, status } = game
 
   const params: CollectionGame = { gameId }
 
@@ -153,39 +83,12 @@ export const updateGameInCollection = async (gameId: number, rating?: number, st
     params.status = status as CollectionStatus
   }
 
-  const body = JSON.stringify(params)
-
-  try {
-    const response = await fetch(`${apiUrl}/api/collection`, {
-      method: 'PUT',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-    const json = await response.json()
-    return json as any
-  } catch (error) {
-    console.error(error)
-  }
+  return await apiFetch('PUT', '/api/collection', params)
 }
 
-export const removeGameFromCollection = async (gameId: number) => {
-  const accessToken = await getAccessToken()
-
-  const body = JSON.stringify({
-    gameId,
-  })
-
-  try {
-    const response = await fetch(`${apiUrl}/api/collection`, {
-      method: 'DELETE',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-      body,
-    })
-    const json = await response.json()
-    return json as any
-  } catch (error) {
-    console.error(error)
-  }
+export const removeGameFromCollection = async (game: Game) => {
+  const { id: gameId } = game
+  return await apiFetch('DELETE', '/api/collection', { gameId })
 }
 
 export const fetchGameCollection = async () => {
@@ -195,20 +98,5 @@ export const fetchGameCollection = async () => {
     return Promise.reject([])
   }
 
-  let response
-
-  try {
-    response = await fetch(`${apiUrl}/api/collection`, {
-      method: 'GET',
-      headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-    })
-  } catch (error) {
-    console.error(error)
-  }
-
-  if (response?.ok) {
-    return await response.json()
-  } else {
-    return Promise.reject(response)
-  }
+  return await apiFetch('GET', '/api/collection')
 }

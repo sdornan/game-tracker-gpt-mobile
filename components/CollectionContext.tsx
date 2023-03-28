@@ -1,5 +1,5 @@
-import { createContext, ReactNode, useContext, useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from 'react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ReactNode, createContext, useContext } from 'react'
 import { CollectionGame, Game } from '../interfaces'
 import {
   addGameToCollection,
@@ -32,7 +32,9 @@ const useProvideCollection = () => {
 
   const queryClient = useQueryClient()
 
-  const { data: collectionData } = useQuery<CollectionGame[]>('collection', fetchGameCollection, {
+  const { data: collectionData } = useQuery<CollectionGame[]>({
+    queryKey: ['collection'],
+    queryFn: fetchGameCollection,
     onError: (error: Response) => {
       if (error?.status === 401) {
         logOut()
@@ -40,45 +42,46 @@ const useProvideCollection = () => {
     },
   })
 
-  const gameIds = useMemo(() => collectionData?.map((g) => g.gameId) ?? [], [collectionData])
+  const gameIds = collectionData?.map((g) => g.gameId) ?? []
 
-  const { data: gamesData } = useQuery<Game[]>(['games', gameIds.join(',')], () => {
-    return fetchGames(gameIds)
+  const { data: gamesData } = useQuery<Game[]>({
+    queryKey: ['games', gameIds.join(',')],
+    queryFn: () => {
+      return fetchGames(gameIds)
+    },
+    enabled: !!gameIds.length,
   })
 
-  const games = useMemo(
-    () =>
-      gamesData?.map((game) => ({
-        ...game,
-        rating: collectionData.find((c) => c.gameId === game.id)?.rating ?? null,
-        status: collectionData.find((c) => c.gameId === game.id)?.status ?? null,
-      })) ?? [],
-    [collectionData, gamesData]
-  )
+  const games =
+    gamesData?.map((game) => ({
+      ...game,
+      rating: collectionData.find((c) => c.gameId === game.id)?.rating ?? null,
+      status: collectionData.find((c) => c.gameId === game.id)?.status ?? null,
+    })) ?? []
 
-  const addMutation = useMutation(
-    (game: Game) => addGameToCollection(game.id, game.rating, game.status),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('collection')
-      },
-    }
-  )
-
-  const removeMutation = useMutation((game: Game) => removeGameFromCollection(game.id), {
+  const addMutation = useMutation({
+    mutationFn: addGameToCollection,
     onSuccess: () => {
-      queryClient.invalidateQueries('collection')
+      console.log('onSuccess')
+      queryClient.refetchQueries({ queryKey: ['collection'] })
     },
   })
 
-  const updateMutation = useMutation(
-    (game: Game) => updateGameInCollection(game.id, game.rating, game.status),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('collection')
-      },
-    }
-  )
+  const removeMutation = useMutation({
+    mutationFn: removeGameFromCollection,
+    onSuccess: () => {
+      console.log('onSuccess')
+      queryClient.refetchQueries({ queryKey: ['collection'] })
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: updateGameInCollection,
+    onSuccess: () => {
+      console.log('onSuccess')
+      queryClient.refetchQueries({ queryKey: ['collection'] })
+    },
+  })
 
   return { games, addMutation, removeMutation, updateMutation }
 }

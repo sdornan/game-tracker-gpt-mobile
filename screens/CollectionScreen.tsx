@@ -1,27 +1,18 @@
 import { MaterialIcons } from '@expo/vector-icons'
-import { ComponentProps, useMemo } from 'react'
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { SearchBar } from '@rneui/themed'
+import { ComponentProps, useState } from 'react'
+import { FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useCollection } from '../components/CollectionContext'
+import Rating from '../components/Rating'
+import StatusIcon from '../components/StatusIcon'
 import { CollectionStatus, Game } from '../interfaces'
-import { getGameImageUrl } from '../lib/utils'
-
-const ICON_SIZE = 25
+import { getGameImageUrl, padWithEmptyItems } from '../lib/utils'
 
 const Item = ({ game, navigation }: { game: Game; navigation }) => {
-  const ratingColor = useMemo(() => {
-    if (game.rating < 5) {
-      return '#ff0000'
-    } else if (game.rating >= 8) {
-      return '#32cd32'
-    } else {
-      return '#ffa500'
-    }
-  }, [game?.rating])
-
-  type StatusIconMap = {
-    [k in CollectionStatus]: { name: ComponentProps<typeof MaterialIcons>['name']; color: string }
-  }
-  const statusIcon: StatusIconMap = {
+  const statusIcon: Record<
+    CollectionStatus,
+    { name: ComponentProps<typeof MaterialIcons>['name']; color: string }
+  > = {
     playing: { name: 'play-arrow', color: '#ffa500' },
     paused: { name: 'pause', color: '#ffff00' },
     completed: { name: 'check', color: '#32cd32' },
@@ -32,41 +23,54 @@ const Item = ({ game, navigation }: { game: Game; navigation }) => {
   return (
     <TouchableOpacity
       style={styles.item}
-      onPress={() => navigation.navigate('Game', { gameId: game.id, gameName: game.name })}>
-      <Image
-        source={{ uri: getGameImageUrl(game?.cover?.image_id) || null }}
-        style={styles.image}
-      />
-      {game.rating ? (
-        <View style={[styles.ratingContainer, { backgroundColor: ratingColor }]}>
-          <Text style={styles.ratingNumber}>{game.rating}</Text>
-        </View>
+      onPress={() => navigation.navigate('Game', { gameId: game.id, gameName: game.name })}
+      disabled={!game.id}>
+      {game.id ? (
+        <Image
+          source={{ uri: getGameImageUrl(game?.cover?.image_id) || null }}
+          style={styles.image}
+        />
       ) : (
-        <></>
+        <View style={styles.image} />
       )}
-      {game.status ? (
-        <View style={[styles.statusContainer, { backgroundColor: statusIcon[game.status].color }]}>
-          <MaterialIcons size={24} name={statusIcon[game.status].name} color="#fff" />
-        </View>
-      ) : (
-        <></>
-      )}
+      {game.rating ? <Rating rating={game.rating} style={styles.rating} /> : <></>}
+      {game.status ? <StatusIcon status={game.status} style={styles.status} /> : <></>}
     </TouchableOpacity>
   )
 }
 
 const CollectionScreen = ({ navigation }) => {
   const { games } = useCollection()
+  const [search, setSearch] = useState('')
+
+  const updateSearch = (search: string) => {
+    setSearch(search)
+  }
+
+  const filteredGames = games.filter((game) =>
+    game.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const paddedGames = padWithEmptyItems(filteredGames)
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={games}
-        renderItem={({ item }) => <Item game={item} navigation={navigation} />}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.container}
-        numColumns={4}
+      <SearchBar
+        platform="ios"
+        onChangeText={updateSearch}
+        value={search}
+        containerStyle={{ backgroundColor: '#e7052c2' }}
       />
+
+      <View style={styles.listContainer}>
+        <FlatList
+          data={paddedGames}
+          renderItem={({ item }) => <Item game={item} navigation={navigation} />}
+          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          numColumns={4}
+          columnWrapperStyle={{ justifyContent: 'space-around' }}
+        />
+      </View>
     </View>
   )
 }
@@ -75,39 +79,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  listContainer: {
+    flex: 1,
+    paddingLeft: 4,
+    paddingRight: 4,
+  },
   item: {
     padding: 4,
+    flex: 1 / 4,
   },
   image: {
-    width: 90,
+    // width: 90,
     height: 128,
   },
-  ratingContainer: {
+  rating: {
     position: 'absolute',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     bottom: 10,
     right: 10,
-    height: ICON_SIZE,
-    width: ICON_SIZE,
-    borderRadius: ICON_SIZE / 2,
   },
-  ratingNumber: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#fff',
-  },
-  statusContainer: {
+  status: {
     position: 'absolute',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     bottom: 10,
     left: 10,
-    height: ICON_SIZE,
-    width: ICON_SIZE,
-    borderRadius: 5,
   },
 })
 

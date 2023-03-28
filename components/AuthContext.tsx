@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import * as AuthSession from 'expo-auth-session'
 import * as Google from 'expo-auth-session/providers/google'
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
@@ -34,6 +35,7 @@ export const useAuth = () => {
 
 const useProvideAuth = () => {
   const [user, setUser] = useState<User>(null)
+  const queryClient = useQueryClient()
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '988986080253-l04s45t5k5j6s9o52podjukrhv687c12.apps.googleusercontent.com',
@@ -65,6 +67,7 @@ const useProvideAuth = () => {
     const user = await getUserInfo(accessToken)
 
     if (loggedIn && stored && user) {
+      queryClient.invalidateQueries()
       setUser(user)
     }
   }
